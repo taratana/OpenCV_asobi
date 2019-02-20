@@ -1,8 +1,2 @@
 ﻿  main.cpp
-c:\users\taka\source\repos\opencv_test\opencv_test\main.cpp(27): warning C4267: '初期化中': 'size_t' から 'int' に変換しました。データが失われているかもしれません。
-c:\users\taka\source\repos\opencv_test\opencv_test\main.cpp(35): warning C4244: '引数': 'double' から '_Tp' への変換です。データが失われる可能性があります。
-          with
-          [
-              _Tp=int
-          ]
   OpenCV_test.vcxproj -> C:\Users\Taka\source\repos\OpenCV_test\x64\Debug\OpenCV_test.exe
