@@ -1,46 +1,74 @@
 #include <opencv2/opencv.hpp>
 #include<string>
-#include<vector>
 #include<iostream>
+#include<math.h>
 
 using namespace cv;
 using namespace std;
 
+#define LANE_WIDTH  50
+
+double r(double x1, double y1, double x2, double y2) {
+	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+}
+
 int main() {
-	Mat image = imread("root.jpg", IMREAD_UNCHANGED);
-	imshow("IMAGE", image);
-	Mat grayScaleImage;
-	cvtColor(image, grayScaleImage, COLOR_BGR2GRAY);
-	
-	//二値化
-	Mat binImage;
-	//threshold(grayScaleImage, binImage, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
-	adaptiveThreshold(grayScaleImage, binImage, 255,  ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY_INV,45,15);
-	Mat binImageClone = binImage.clone();
-	imshow("BINIMAGE", binImage);
+	Mat tmpl = imread("template-1.png");
+	Mat screws = imread("screw.png");
+	imshow("template", tmpl);
+	imshow("screws", screws);
 
-	//全体の根の長さ計測
-	vector<vector<Point>> contours;
-	findContours(binImage, contours, RETR_LIST, CHAIN_APPROX_NONE);
-	double coutourLenAll = 0;
-	for (int i = 0; i < contours.size(); i++) {
-		coutourLenAll += arcLength(contours[i], 1);
+	for (int i = 0; i < 3; i++) {
+		int roi_x = 0;
+		if (i == 0)roi_x = 84;
+		if (i == 1)roi_x = 155;
+		if (i == 2)roi_x = 229;
+
+		Rect roi_rect = Rect(roi_x, 0, LANE_WIDTH, screws.rows);
+		Mat singleScrew(screws.clone(), roi_rect);
+		rectangle(screws, roi_rect, Scalar(0, 0, 255), 1);
+		imshow("screws highlight", screws);
+
+		Mat singleScrewLarge = Mat::zeros(screws.rows, screws.rows, CV_8UC3);
+		Rect copyRect = Rect(singleScrewLarge.rows*0.5 - LANE_WIDTH*0.5, 0, LANE_WIDTH, singleScrewLarge.rows);
+		singleScrew.copyTo(singleScrewLarge(copyRect));
+		imshow("singleScrewLarge", singleScrewLarge);
+
+		int maxAngle = -1;
+		double maxValGlobal = -1;
+
+		for (int angle = -180; angle < 180; angle++) {
+			Mat rotSingleScrew;
+			float scale = 1.0;
+
+			Point2f center(singleScrewLarge.cols*0.5, singleScrewLarge.rows*0.5);
+			const Mat affineMatrix = getRotationMatrix2D(center, angle, scale);
+			warpAffine(singleScrewLarge, rotSingleScrew, affineMatrix, singleScrewLarge.size());
+
+			Mat resultImage;
+			matchTemplate(rotSingleScrew, tmpl, resultImage, TM_CCOEFF_NORMED);
+			Point maxPt;
+			double maxVal;
+			minMaxLoc(resultImage, NULL, &maxVal, NULL, &maxPt);
+			
+			Rect roiRect2(0, 0, tmpl.cols, tmpl.rows);
+			roiRect2.x = maxPt.x;
+			roiRect2.y = maxPt.y;
+			rectangle(rotSingleScrew, roiRect2, Scalar(0, 0, 255 * maxVal), 2);
+
+			imshow("rot single screw", rotSingleScrew);
+			imshow("result", resultImage);
+			
+			if (maxVal > maxValGlobal) {
+				maxValGlobal = maxVal;
+				maxAngle = angle;
+			}
+			waitKey(1);
+		}
+		cout << "ねじ#" << i << "は" << maxAngle << "傾いています" << endl;
 	}
-	cout << "estimated root length(total)=" << coutourLenAll / 2 << endl;
-
-	//主根の長さ計測
-	erode(binImageClone, binImageClone, Mat(), Point(-1, -1), 4);
-	findContours(binImageClone, contours, RETR_LIST, CHAIN_APPROX_NONE);
-	double contourLenMain = 0;
-	for (int i = 0; i < contours.size(); i++) {
-		contourLenMain += arcLength(contours[i], 1);
-	}
-	cout << "estimated root length(main)=" << contourLenMain / 2 << endl;
-	cout << "estimated root length(lateral)=" << (coutourLenAll-contourLenMain) / 2 << endl;
-	imshow("Eroded",binImageClone);
 
 
-	imwrite("outputImage.png", image);
 	waitKey(0);
 	return 0;
 }

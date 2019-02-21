@@ -1,2 +1,12 @@
 ﻿  main.cpp
+c:\users\taka\source\repos\opencv_test\opencv_test\main.cpp(33): warning C4244: '引数': 'double' から '_Tp' への変換です。データが失われる可能性があります。
+          with
+          [
+              _Tp=int
+          ]
+c:\users\taka\source\repos\opencv_test\opencv_test\main.cpp(44): warning C4244: '引数': 'double' から '_Tp' への変換です。データが失われる可能性があります。
+          with
+          [
+              _Tp=float
+          ]
   OpenCV_test.vcxproj -> C:\Users\Taka\source\repos\OpenCV_test\x64\Debug\OpenCV_test.exe
